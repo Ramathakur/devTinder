@@ -10,7 +10,6 @@ app.post('/signup', async (req, res)=> {
         emailId:"charu@gmail.com",
         password:"12345"
     })
-
     try {
         await user.save()
         res.send("User saved successfully")
