@@ -5,6 +5,55 @@ const app = express();
 
 app.use(express.json());
 
+app.get("/user", async(req,res) => {
+    const userEmail = req.body.emailId;
+    const userId = req.body._id;
+    try {
+        let response = await User.find({ emailId: userEmail});
+        if (response.length === 0) {
+            res.status(404).send("User not found")
+        } else {
+            res.send(response);
+        }
+    } catch (error) {
+        res.status(401).send("something went wrong")
+    }
+
+    // try {
+    //     let response = await User.findOne({ emailId: userEmail});
+    //     if (!response) {
+    //         res.status(404).send("User not found")
+    //     } else {
+    //         res.send(response);
+    //     }
+    // } catch (error) {
+    //     res.status(401).send("something went wrong")
+    // }
+
+    // try {
+    //     let response = await User.findById({ _id:userId });
+    //     if (!response) {
+    //         res.status(404).send("User not found")
+    //     } else {
+    //         res.send(response);
+    //     }
+    // } catch (error) {
+    //     res.status(401).send("something went wrong")
+    // }
+})
+app.get("/feed", async(req,res) => {
+    try {
+        let response = await User.find({});
+        if (response.length === 0) {
+            res.status(404).send("User not found")
+        } else {
+            res.send(response);
+        }
+    } catch (error) {
+        res.status(401).send("something went wrong")
+    }
+
+})
 app.post('/signup', async (req, res)=> {
     req.body
     const user = new User(req.body)
