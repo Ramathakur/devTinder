@@ -1,90 +1,88 @@
-const express = require('express');
-const connectDB = require('./config/database');
-const User = require('./models/user');
+const express = require("express");
+const connectDB = require("./config/database");
 const app = express();
+const User = require("./models/user");
+const { validateSignUpData } = require("./utils/validation");
+const bcrypt = require("bcrypt");
+const cookieParser = require("cookie-parser");
+const jwt = require("jsonwebtoken");
+const { userAuth } = require("./middlewares/auth");
 
 app.use(express.json());
+app.use(cookieParser());
 
-app.get("/user", async(req,res) => {
-    const userEmail = req.body.emailId;
-    const userId = req.body._id;
-    // try {
-    //     let response = await User.find({ emailId: userEmail});
-    //     if (response.length === 0) {
-    //         res.status(404).send("User not found")
-    //     } else {
-    //         res.send(response);
-    //     }
-    // } catch (error) {
-    //     res.status(401).send("something went wrong")
-    // }
+app.post("/signup", async (req, res) => {
+  try {
+    // Validation of data
+    validateSignUpData(req);
 
-    // try {
-    //     let response = await User.findOne({ emailId: userEmail});
-    //     if (!response) {
-    //         res.status(404).send("User not found")
-    //     } else {
-    //         res.send(response);
-    //     }
-    // } catch (error) {
-    //     res.status(401).send("something went wrong")
-    // }
+    const { firstName, lastName, emailId, password } = req.body;
 
-    try {
-        let response = await User.findById(userId );
-        if (!response) {
-            res.status(404).send("User not found")
-        } else {
-            res.send(response);
-        }
-    } catch (error) {
-        res.status(401).send("something went wrong")
-    }
-})
-app.get("/feed", async(req,res) => {
-    try {
-        let response = await User.find({});
-        if (response.length === 0) {
-            res.status(404).send("User not found")
-        } else {
-            res.send(response);
-        }
-    } catch (error) {
-        res.status(401).send("something went wrong")
-    }
-})
-app.post('/signup', async (req, res)=> {
-    req.body
-    const user = new User(req.body)
-    try {
-        await user.save()
-        res.send("User saved successfully")
-    } catch (error) {
-        res.status(400).send("error while save user", error.message)
-    }
-  
-})
+    // Encrypt the password
+    const passwordHash = await bcrypt.hash(password, 10);
+    console.log(passwordHash);
 
-app.delete('/delete', async (req, res)=> {
-    // const id = req.body.userId;
-    const userEmail = req.body.emaiId;
-    try {
-    //    let result = await User.findByIdAndDelete(id);
-       let result = await User.findOneAndDelete({emailId: userEmail});
-       if (result) {
-        res.send(`User deleted successfullyS`)
-       } else {
-        res.status(404).send("user not found")
-       }
-      
-    } catch (error) {
-        res.status(401).send("something went wrong")
-    }
+    //   Creating a new instance of the User model
+    const user = new User({
+      firstName,
+      lastName,
+      emailId,
+      password: passwordHash,
+    });
+
+    await user.save();
+    res.send("User Added successfully!");
+  } catch (err) {
+    res.status(400).send("ERROR : " + err.message);
+  }
 });
+
+app.post("/login", async (req, res) => {
+  try {
+    const { emailId, password } = req.body;
+
+    const user = await User.findOne({ emailId: emailId });
+    if (!user) {
+      throw new Error("Invalid credentials");
+    }
+    const isPasswordValid = await user.validatePassword(password);
+
+    if (isPasswordValid) {
+      const token = await user.getJWT();
+
+      res.cookie("token", token, {
+        expires: new Date(Date.now() + 8 * 3600000),
+      });
+      res.send("Login Successful!!!");
+    } else {
+      throw new Error("Invalid credentials");
+    }
+  } catch (err) {
+    res.status(400).send("ERROR : " + err.message);
+  }
+});
+
+app.get("/profile", userAuth, async (req, res) => {
+  try {
+    const user = req.user;
+
+    res.send(user);
+  } catch (err) {
+    res.status(400).send("ERROR : " + err.message);
+  }
+});
+
+app.post("/sendConnectionRequest", userAuth, async (req, res) => {
+  const user = req.user;
+  // Sending a connection request
+  console.log("Sending a connection request");
+
+  res.send(user.firstName + "sent the connect request!");
+});
+
 connectDB().then(()=>{
-console.log("Database connection established")
-app.listen(5000, () => {
-    console.log(`Server listening to the port 5000`);
-});
-}).catch(err => console.error("Error connecting"))
-
+    console.log("Database connection established")
+    app.listen(5000, () => {
+        console.log(`Server listening to the port 5000`);
+    });
+    }).catch(err => console.error("Error connecting"))
