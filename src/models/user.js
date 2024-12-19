@@ -49,7 +49,7 @@ const userSchema = new mongoose.Schema(
     },
     photoUrl: {
       type: String,
-      default: "https://geographyandyou.com/images/user-profile.png",
+      default: "https://www.shareicon.net/data/128x128/2016/05/24/770079_people_512x512.png",
       validate(value) {
         if (!validator.isURL(value)) {
           throw new Error("Invalid Photo URL: " + value);
@@ -71,9 +71,8 @@ const userSchema = new mongoose.Schema(
 
 userSchema.methods.getJWT = async function () {
   const user = this;
-
   const token = await jwt.sign({ _id: user._id }, "DEV@Tinder$790", {
-    expiresIn: "7d",
+    expiresIn: "2d",
   });
 
   return token;
@@ -82,12 +81,10 @@ userSchema.methods.getJWT = async function () {
 userSchema.methods.validatePassword = async function (passwordInputByUser) {
   const user = this;
   const passwordHash = user.password;
-
   const isPasswordValid = await bcrypt.compare(
     passwordInputByUser,
     passwordHash
   );
-
   return isPasswordValid;
 };
 
